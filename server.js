@@ -43,6 +43,7 @@ app.post('/highscores', (req, res) => {
     res.json(highscores);
 });
 
-app.listen(port, () => {
-    console.log(`Server kör på http://localhost:${port}`);
+app.listen(PORT, () => {
+    console.log(`Server kör på http://localhost:${PORT}`);
 });
+
