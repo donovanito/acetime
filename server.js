@@ -1,49 +1,52 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const cors = require('cors'); // Lägg till CORS-paketet
-const app = express();
-const PORT = process.env.PORT || 3000;
+// Ange URL till din PHP-fil på One.com
+const API_URL = "https://dindomän.com/tennisspel/highscores.php";  
 
-app.use(express.json());
-app.use(cors()); // Aktivera CORS för alla förfrågningar
-
-// Fil för highscore
-const highscoreFile = path.join(__dirname, 'highscores.json');
-
-// Startlista om filen inte finns
-if (!fs.existsSync(highscoreFile)) {
-    const initialScores = [
-        { name: "Anna", time: 600.00, date: "2025-02-22" },
-        { name: "Bosse", time: 650.00, date: "2025-02-21" },
-        { name: "Karin", time: 700.00, date: "2025-02-20" },
-        { name: "Lars", time: 750.00, date: "2025-02-19" },
-        { name: "Maja", time: 800.00, date: "2025-02-18" },
-        { name: "Nisse", time: 850.00, date: "2025-02-17" },
-        { name: "Olle", time: 900.00, date: "2025-02-16" },
-        { name: "Pelle", time: 950.00, date: "2025-02-15" },
-        { name: "Stina", time: 1000.00, date: "2025-02-14" },
-        { name: "Tina", time: 1050.00, date: "2025-02-13" }
-    ];
-    fs.writeFileSync(highscoreFile, JSON.stringify(initialScores, null, 2));
+// Funktion för att hämta highscore-listan
+function getHighScores() {
+    fetch(API_URL)
+        .then(response => response.json())
+        .then(highscores => {
+            let scoresHtml = "";
+            highscores.forEach(score => {
+                scoresHtml += `<li>${score.name}: ${score.time} sek (${score.date})</li>`;
+            });
+            document.getElementById("leaderboard").innerHTML = scoresHtml;
+        })
+        .catch(error => console.error("Fel vid hämtning av highscore:", error));
 }
 
-app.get('/highscores', (req, res) => {
-    const highscores = JSON.parse(fs.readFileSync(highscoreFile));
-    res.json(highscores);
-});
+// Funktion för att skicka en ny highscore
+function saveScore(name, time) {
+    fetch(API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            name: name,
+            time: parseFloat(time),
+            date: new Date().toISOString().split('T')[0]  // Format YYYY-MM-DD
+        })
+    })
+    .then(response => response.json())
+    .then(updatedScores => {
+        console.log("Highscore sparat:", updatedScores);
+        getHighScores();  // Uppdatera listan direkt
+    })
+    .catch(error => console.error("Fel vid sparande av highscore:", error));
+}
 
-app.post('/highscores', (req, res) => {
-    const { name, time, date } = req.body;
-    let highscores = JSON.parse(fs.readFileSync(highscoreFile));
-    highscores.push({ name, time: parseFloat(time), date });
-    highscores.sort((a, b) => a.time - b.time);
-    highscores = highscores.slice(0, 10);
-    fs.writeFileSync(highscoreFile, JSON.stringify(highscores, null, 2));
-    res.json(highscores);
-});
+// Ladda highscore-listan när sidan öppnas
+document.addEventListener("DOMContentLoaded", getHighScores);
 
-app.listen(PORT, () => {
-    console.log(`Server kör på http://localhost:${PORT}`);
-});
+// Koppla en knapp i spelet för att spara highscore
+document.getElementById("submitScore").addEventListener("click", function() {
+    let playerName = document.getElementById("playerName").value;
+    let playerTime = document.getElementById("playerTime").value;
 
+    if (playerName && playerTime) {
+        saveScore(playerName, playerTime);
+    } else {
+        alert("Fyll i namn och tid!");
+    }
+});
