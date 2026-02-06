@@ -274,7 +274,7 @@ const COLORS = {
 const ENEMY_COLORS = ['#ff3333','#ff8833','#ffdd33','#33cc33','#cc33ff','#ff33aa','#ffffff'];
 
 // ----- Game state -----
-let state = 'menu'; // menu | playing | dead
+let state = 'menu'; // menu | playing | paused | dead
 let score = 0;
 let bestScore = parseInt(localStorage.getItem('roadRacerBest') || '0');
 let speed = 2;
@@ -382,6 +382,7 @@ function emitSparks(x, y) {
 function update() {
     if (state !== 'playing') return;
     frame++;
+
 
     // Increase speed over time
     baseSpeed = 2 + frame * 0.0012;
@@ -737,10 +738,24 @@ function darken(hex, factor) {
     return `rgb(${r},${g},${b})`;
 }
 
+// ----- Pause overlay on canvas -----
+function drawPause() {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, BASE_W, BASE_H);
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', BASE_W / 2, BASE_H / 2 - 10);
+    ctx.font = '10px "Press Start 2P"';
+    ctx.fillStyle = '#0ff';
+    ctx.fillText('Press SPACE to resume', BASE_W / 2, BASE_H / 2 + 20);
+}
+
 // ----- Game loop -----
 function gameLoop() {
     update();
     draw();
+    if (state === 'paused') drawPause();
     requestAnimationFrame(gameLoop);
 }
 
@@ -866,7 +881,17 @@ document.addEventListener('keydown', (e) => {
         inputRight = true;
         e.preventDefault();
     }
-    if ((e.key === ' ' || e.key === 'Enter') && state !== 'playing') {
+    if (e.key === ' ') {
+        if (state === 'playing') {
+            state = 'paused';
+        } else if (state === 'paused') {
+            state = 'playing';
+        } else {
+            startGame();
+        }
+        e.preventDefault();
+    }
+    if (e.key === 'Enter' && (state === 'menu' || state === 'dead')) {
         startGame();
         e.preventDefault();
     }
